@@ -2,8 +2,21 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <style>
+
+#splash {
+  width: 100%;
+  background-image: url("./images/fireworks.jpg");
+  color: white;
+  height: 300px;
+  background-size: 100%;
+}
+
+
 * { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; }
 body {
+  padding: 0;
+}
+#content {
   max-width: 800px;
   position: relative;
   margin: 0 auto;
@@ -64,213 +77,36 @@ code {
 <link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
 </head>
 
+<!-- IMAGE EXAMPLE
+<div>
+  <figure class="half">
+    <img src=""/>
+    <figcaption></figcaption>
+  </figure>
+</div> -->
+
 <body>
 
-<h1>Project 3-2: Ray Tracer, Part 2</h1>
-<h2>Steven Traversi, cs184-ada</h2>
-
-<h2>Overview</h2>
-<p>This project wraps up the raytracer we have been building over the last month. This portion focuses on more interesting BSDFs: mirror, glass, and microfacet. This portion also includes camera effects by simulating a lens. The mirror BSDF was comparatively simple, exhibiting specular behavior that perfectly reflects incoming rays. The glass BSDF was more interesting, in that it both reflects and refracts, leading to much more interesting light ray interaction. The microfacet BSDF simulates a probability distribution of surface normals that are sampled from, a departure from some core ideas used in the mirror and glass BSDFs. We learned how to increase convergence rates by implementing importance sampling, which attempts to model the sampled incident light directions based on the BSDF or the important values in an environment, for example. Environment lights came up, providing a spherical light source all around the rendered object. Importance sampling became especially needed for these renders, as there are many directions that light can be sampled from, but often very few that actually influence the final spectrum of an intersection point very much. Lastly, we looked at lense effects which include focal distance and lens radius. They allow us to focus on a particular z-plane in an image, and create circles of confusion elsewhere. This was a fantastic project, and I learned a ton!</p>
-
-<h2>Part 1: Mirror and Glass Materials</h2>
-<p>Mirrors exhibit perfect reflection. Glass objects exhibit both reflection and refraction. When it comes to refraction, and light rays are sent within an object, these rays can both reflect and refract <em>again</em>. Reflection and refraction depend on the angle of incidence and the "index of refraction", a constant value intrinsic to transparent materials.</p>
-<p>Sampling a mirror surface is simpler, because the only calculation needed is to reflect the incoming ray. Sampling a glass surface is harder, because a decision has to be made: reflect or refract. When refracting, some light is also reflected. Because of finite sampling rates, when a refraction occurs, we have to flip a biased coin to decide whether to continue the ray as refracted or reflected. We use Schlick's approximation to determine this probability.</p>
-<p>Let's take a look at a cornell box scene that has both a mirror sphere and glass sphere!</p>
-
-<h3>Changing the maximum ray depth</h3>
-<p>By incrementing a ray depth from 0 and rendering a new picture each time, we can see the complex light ray paths created by glass materials that reflect and refract.</p>
-<div>
-  <figure class="half">
-    <img src="./images/1_spheres_s64_l4_m0.png"/>
-    <figcaption>maximum ray depth 0<br>We are not yet able to see the rays reflected off the spheres.</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/1_spheres_s64_l4_m1.png"/>
-    <figcaption>maximum ray depth 1<br>The mirror surface only needs one ray bounce to gather the most important light. Some rays are reflected off the glass surface; at the black points, the rays have been refracted.</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/1_spheres_s64_l4_m2.png"/>
-    <figcaption>maximum ray depth 2<br>The refracted glass rays appear! Check out the reflection of the glass sphere in the mirror sphere-- the image of the ray depth 1 glass sphere appears.</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/1_spheres_s64_l4_m3.png"/>
-    <figcaption>maximum ray depth 3<br>Light that refracted straight through the glass sphere hits the ground and we can see it.</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/1_spheres_s64_l4_m4.png"/>
-    <figcaption>maximum ray depth 4<br>Some light reflected off the ground hits the blue wall.</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/1_spheres_s64_l4_m5.png"/>
-    <figcaption>maximum ray depth 5<br>The image has pretty much converged at this point.</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/1_spheres_s64_l4_m100.png"/>
-    <figcaption>maximum ray depth 100<br>The image looks similar to the depth 5 image.</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/1_spheres_gif.gif"/>
-    <figcaption>Watch the glass sphere light up as maximum ray depth increases!</figcaption>
-  </figure>
+<div id="splash">
+  <h1>Final Project Proposal</h1>
+  <h2>Steven Traversi and Carlos Flores</h2>
 </div>
 
-<h2>Part 2: Microfacet Material</h2>
-<p>Microfacet materials have some degree of roughness in their surfaces. We can implement this by sampling from a probability distribution of normals when we sample a surface point. Eta and k values further control the microfacet BSDF's reflection behavior.</p>
-<h3>Changing a microfacet's alpha value</h3>
-<p>A Microfacet BSDF's alpha value controls its "roughness". In implementation, alpha serves to widen the angle between the sampled incident ray and the surface normal. For a low alpha, the microfacet material becomes more ideal-specular or mirror-like. For a high alpha, the material becomes more diffuse, as the reflected ray may be sampled from a wider range of directions.</p>
-<div>
-  <figure class="half">
-    <img src="./images/2_dragon_s128_l1_m5_au_005.png"/>
-    <figcaption>alpha = 0.005</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/2_dragon_s128_l1_m5_au_05.png"/>
-    <figcaption>alpha = 0.05</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/2_dragon_s128_l1_m5_au_25.png"/>
-    <figcaption>alpha = 0.25</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/2_dragon_s128_l1_m5_au_5.png"/>
-    <figcaption>alpha = 0.5</figcaption>
-  </figure>
-</div>
-<p>When alpha is low, the material is mirror-like as discussed above. When alpha is high, the "rougher" material takes on a more matted or dulled appearance.</p>
+<div id="content">
+  <h3>Quick Description</h3>
+  <p></p>
 
-<h3>Cosine hemisphere sampling vs. importance sampling</h3>
-<p>We can look at the difference between sampling incident light direction via cosine hemsiphere sampling vs. importance sampling (sampling with respect to the distribution of normals). Below, we render the same bunny with both types of sampling. We can see that cosine hemisphere sampling, which samples incident light direction uniformly with cosine weighting, produces noticeable noise. When we switch to importance sampling and sample with respect to the distribution of normals discussed earlier, overall noise is drastically reduced.</p>
-<div>
-  <figure class="half">
-    <img src="./images/2_bunny_cosine_hem_sampling.png"/>
-    <figcaption>Cosine hemisphere sampling</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/2_bunny_importance_sampling.png"/>
-    <figcaption>Importance sampling</figcaption>
-  </figure>
-</div>
-<h3>Custom materials</h3>
-<p>We can simulate metals with known microfacet behavior values. Below, I've simulated:</p>
-<p>Iron</p>
-<ul>
-  <li>alpha: 0.1</li>
-  <li>eta: 2.3580 2.1857 1.8236</li>
-  <li>k: 3.2850 3.1692 2.9730</li>
-</ul>
-<p>Traversium (custom)</p>
-<ul>
-  <li>alpha: 0.1</li>
-  <li>eta: 0.3164 3.42833 0.3284</li>
-  <li>k: 3.1218 0.0377 0.0949</li>
-</ul>
-<div>
-  <figure class="half">
-    <img src="./images/2_dragon_s128_l1_m5_fe.png"/>
-    <figcaption>Iron Dragon</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/2_dragon_s1024_l3_m5_tr.png"/>
-    <figcaption>Traversium Dragon</figcaption>
-  </figure>
-</div>
+  <h2>Problem Description</h2>
+  <p></p>
 
-<h2>Part 3: Environment Light</h2>
-<h3>Importance sampling cumulative probabilities</h3>
-<div>
-  <figure class="half">
-    <img src="./images/probability_debug_field.png"/>
-    <figcaption>Cumulative probability distribution for the field environment</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/field.jpg"/>
-    <figcaption>The field environment</figcaption>
-  </figure>
-</div>
-<div>
-  <figure align="middle">
-    <img src="./images/3_bunny_field_nice.png"/>
-    <figcaption>A bunny in the field</figcaption>
-  </figure>
-</div>
-<p>To help importance sampling for the environment light, we built the cumulative probability distribution for the environment. This image depicts the probability that a light should be sampled from before a given x, y value. Whether the light should be sampled in a range of the environment light depends on its illumination value. Brighter parts of the image contribute more to a spectrum, and should be prioritized to increase convergence rate.</p>
+  <h2>Goals and Deliverables</h2>
+  <p></p>
 
-<h3>Unlit bunny: uniform sphere sampling vs. importance sampling</h3>
-<p>In a normal bunny which exhibits diffuse material behaviors, uniform sphere sampling differs very little from importance sampling. This is simply because the diffuse material on the bunny needs a much higher sampling rate to converge than we have allowed on either of these two renders. The diffuse behavior of the material diminishes the effect of importance sampling for low sample rates.</p>
-<div>
-  <figure class="half">
-    <img src="./images/3_bunny_uniform_sampling.png"/>
-    <figcaption>uniform sphere sampling</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/3_bunny_importance_sampling.png"/>
-    <figcaption>importance sampling</figcaption>
-  </figure>
-</div>
-<h3>Unlit microfacet bunny: uniform sphere sampling vs. importance sampling</h3>
-<p>Changing sampling styles on the microfacet bunny does alter the result drastically. Without importance sampling, the material's reflected spectrum values take longer to converge, and if it is cut off to early, we will see lots of noise. Some of the samples got lucky and reflected into the important parts of the environment map and cause white dots to appear on the uniform sphere sampling image. For the same sampling rates, the importance sampling image will look better, as it converges much more quickly than uniform sphere sampling, producing a smooth result.</p>
-<div>
-  <figure class="half">
-    <img src="./images/3_bunny_cu_uniform_sampling.png"/>
-    <figcaption>uniform sphere sampling</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/3_bunny_cu_importance_sampling.png"/>
-    <figcaption>importance sampling</figcaption>
-  </figure>
-</div>
-<p>Between the four renders, we can see clearly that material can affect convergence rates greatly.</p>
+  <h2>Schedule</h2>
+  <p></p>
 
-<h2>Part 4: Depth of Field</h2>
-<p>Throughout the previous portions of the project, we can think of the renders to have been simulated through a pinhole. Every distance in the image is perfectly in focus, and there are no circles of confusion. To simulate lens effects, we can sample from a wider set of rays for each pixel in the image, making sure that we sample these new ray positions from a distribution that models a particular lens's behavior. Lens parameters include the diameter of the lens and the focal distance of the lens.</p>
-<h3>Changing the focus</h3>
-<p>To change the focus of the lens, we can increase the focal distance of the simulated lense, which alters the focus plane intersection in the simulation. This in turn changes the positions of the rays that are allowed to affect a certain pixel being rendered.</p>
-<p>In this example, we create a "focus stack", in which we alter the focal distance of the simulated lens and render several images with each setting. Take note of the gif at the end!</p>
-<div>
-  <figure class="half">
-    <img src="./images/4_dragon_depth_1.png"/>
-    <figcaption>Dragon focused at the front</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/4_dragon_depth_2.png"/>
-    <figcaption></figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/4_dragon_depth_3.png"/>
-    <figcaption></figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/4_dragon_depth_4.png"/>
-    <figcaption>Dragon focused at the back</figcaption>
-  </figure>
-  <figure align="middle">
-    <img src="./images/4_dragon_gif.gif"/>
-    <figcaption>Watch the focus shift from the front of the dragon to the back!</figcaption>
-  </figure>
-</div>
-<p>Interesting points to look at in the gif: the corner of the three intersection walls, the nose of the dragon, the bright reflections on the dragon.</p>
-<h3>Changing the aperture</h3>
-<p>Changing the diameter of the lens changes the range of rays that are allowed to affect a pixel being rendered. With a "0" width lens, we have a pinhole, which renders everything in focus because each pixel only sees one light ray through the "lens". Widening this value increases the number of rays that affect a pixel, and creates circles of confusion in the de-focused areas of the image.</p>
-<p>In the following example, we widen the lens diameter. The effect on the background is particularly noticeable-- see the circles of confusion increase in size!</p>
-<div>
-  <figure class="half">
-    <img src="./images/4_bunny_grace_lens_1.png"/>
-    <figcaption>Aperture is 0</figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/4_bunny_grace_lens_2.png"/>
-    <figcaption></figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/4_bunny_grace_lens_3.png"/>
-    <figcaption></figcaption>
-  </figure>
-  <figure class="half">
-    <img src="./images/4_bunny_grace_lens_4.png"/>
-    <figcaption>Aperture is wide</figcaption>
-  </figure>
-</div>
-<p>End.</p>
-
+  <h2>Resources</h2>
+  <p></p>
 </body>
+</div>
 </html>
